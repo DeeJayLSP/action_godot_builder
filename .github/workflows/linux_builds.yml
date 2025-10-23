@@ -37,7 +37,7 @@ env:
 jobs:
   build-linux:
     # Use AlmaLinux 8 to increase portability of Linux artifacts.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container: almalinux:8
     name: ${{ matrix.name }}
     strategy:
@@ -149,7 +149,7 @@ jobs:
         uses: ./.github/actions/godot-build
         if: matrix.build-mono && matrix.target != 'editor'
         with:
-          scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ matrix.scons-mono-flags }} ${{ inputs.module_flags }} optimize=none lto=none
+          scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ matrix.scons-mono-flags }} ${{ inputs.module_flags }} debug_symbols=no optimize=none lto=none
           platform: linuxbsd
           target: ${{ matrix.target }}
 
@@ -189,7 +189,7 @@ jobs:
           path: bin
 
   build-linux-arm64:
-    runs-on: ubuntu-latest-arm
+    runs-on: ubuntu-24.04-arm
     container: almalinux:8
     name: ${{ matrix.name }}
     strategy:
@@ -266,7 +266,7 @@ jobs:
         uses: ./.github/actions/godot-build
         if: matrix.build-mono && matrix.target != 'editor'
         with:
-          scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ matrix.scons-mono-flags }} ${{ inputs.module_flags }} optimize=none lto=none
+          scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ matrix.scons-mono-flags }} ${{ inputs.module_flags }} debug_symbols=no optimize=none lto=none
           platform: linuxbsd
           target: ${{ matrix.target }}
 
