@@ -149,7 +149,7 @@ jobs:
         uses: ./.github/actions/godot-build
         if: matrix.build-mono
         with:
-          scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ matrix.scons-mono-flags }} ${{ inputs.lto }} ${{ env.MODULEFLAGS }}
+          scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ matrix.scons-mono-flags }} ${{ inputs.lto }} ${{ env.MODULEFLAGS }} optimize=none lto=none
           platform: linuxbsd
           target: ${{ matrix.target }}
 
@@ -266,7 +266,7 @@ jobs:
         uses: ./.github/actions/godot-build
         if: matrix.build-mono
         with:
-          scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ matrix.scons-mono-flags }} ${{ inputs.lto }} ${{ env.MODULEFLAGS }}
+          scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ matrix.scons-mono-flags }} ${{ inputs.lto }} ${{ env.MODULEFLAGS }} optimize=none lto=none
           platform: linuxbsd
           target: ${{ matrix.target }}
 
