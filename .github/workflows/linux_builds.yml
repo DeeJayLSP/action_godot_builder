@@ -145,12 +145,6 @@ jobs:
           ref: ${{ inputs.tag }}
           submodules: recursive
 
-      - name: Setup SCons cache
-        run: |
-          echo ::add-matcher::misc/utility/problem-matchers.json
-          mkdir -p /home/runner/work/action_godot_builder/action_godot_builder/.scons_cache
-          chmod -R u+rw /home/runner/work/action_godot_builder/action_godot_builder/.scons_cache || true
-
       - name: Restore Godot build cache
         uses: ./.github/actions/godot-cache-restore
         with:
