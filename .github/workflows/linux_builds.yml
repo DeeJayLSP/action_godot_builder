@@ -147,7 +147,7 @@ jobs:
 
       - name: Editor compilation for glue
         uses: ./.github/actions/godot-build
-        if: matrix.build-mono
+        if: matrix.build-mono && matrix.target != 'editor'
         with:
           scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ matrix.scons-mono-flags }} ${{ inputs.lto }} ${{ env.MODULEFLAGS }} optimize=none lto=none
           platform: linuxbsd
@@ -264,7 +264,7 @@ jobs:
 
       - name: Editor compilation for glue
         uses: ./.github/actions/godot-build
-        if: matrix.build-mono
+        if: matrix.build-mono && matrix.target != 'editor'
         with:
           scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ matrix.scons-mono-flags }} ${{ inputs.lto }} ${{ env.MODULEFLAGS }} optimize=none lto=none
           platform: linuxbsd
