@@ -68,6 +68,12 @@ jobs:
             scons-mono-flags: ''
             build-mono: false
 
+          - name: Template (target=template_release, arch=arm64)
+            target: template_release
+            scons-flags: arch=arm64
+            scons-mono-flags: ''
+            build-mono: false
+
           - name: Editor Mono (target=editor arch=x86_64)
             target: editor
             scons-flags: arch=x86_64 module_mono_enabled=yes
@@ -101,11 +107,13 @@ jobs:
             echo "DEP_ARCH=x86_64" >> $GITHUB_ENV
           elif [[ "${{ matrix.scons-flags }}" == *"arch=x86_32"* ]]; then
             echo "DEP_ARCH=i686" >> $GITHUB_ENV
+          elif [[ "${{ matrix.scons-flags }}" == *"arch=arm64"* ]]; then
+            echo "DEP_ARCH=aarch64" >> $GITHUB_ENV
           fi
 
       - name: Install dependencies
         run: |
-          dnf install -y libatomic.${{ env.DEP_ARCH }} libatomic-static.${{ env.DEP_ARCH }} wayland-devel.${{ env.DEP_ARCH }}
+          dnf install -y libatomic.${{ env.DEP_ARCH }} libatomic-static.${{ env.DEP_ARCH }} wayland-devel.${{ env.DEP_ARCH }} clang.{{}}
           ln -s /usr/lib/gcc/${{ env.DEP_ARCH }}-redhat-linux/8/libatomic.a /usr/lib/libatomic.a
           wget https://github.com/godotengine/buildroot/releases/download/godot-2023.08.x-4/x86_64-godot-linux-gnu_sdk-buildroot.tar.bz2
           tar -xjf ${{ env.DEP_ARCH }}-godot-linux-gnu_sdk-buildroot.tar.bz2 -C /opt
