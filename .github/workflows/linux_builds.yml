@@ -97,9 +97,9 @@ jobs:
 
       - name: Set architecture for dependencies
         run: |
-          if [[ "${{ matrix.scons-flags }}" == "arch=x86_64" ]]; then
+          if [[ "${{ matrix.scons-flags }}" == *"arch=x86_64"* ]]; then
             echo "DEP_ARCH=x86_64" >> $GITHUB_ENV
-          elif [[ "${{ matrix.scons-flags }}" == "arch=x86_32" ]]; then
+          elif [[ "${{ matrix.scons-flags }}" == *"arch=x86_32"* ]]; then
             echo "DEP_ARCH=i686" >> $GITHUB_ENV
           fi
 
