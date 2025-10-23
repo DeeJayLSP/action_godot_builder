@@ -17,6 +17,9 @@ on:
       module_flags:
         description: 'Extra module flags, e.g. module_webm_enabled=no'
         type: string
+      template_module_flags:
+        description: 'Extra module flags for template build, e.g. module_webm_enabled=no'
+        type: string
       use_encryption_key:
         description: 'Whether to use the encryption key for the build (if available)'
         type: string
@@ -105,6 +108,10 @@ jobs:
           /opt/${{ env.DEP_ARCH }}-godot-linux-gnu_sdk-buildroot/relocate-sdk.sh
           export PATH=/opt/${{ env.DEP_ARCH }}-godot-linux-gnu_sdk-buildroot/bin:$PATH
           echo "PATH=/opt/${{ env.DEP_ARCH }}-godot-linux-gnu_sdk-buildroot/bin:$PATH" >> $GITHUB_PATH
+          if ${{ matrix.target }} == 'editor':
+            echo "MODULEFLAGS=${{ inputs.module_flags }}" >> $GITHUB_ENV
+          else:
+            echo "MODULEFLAGS=${{ inputs.template_module_flags }}" >> $GITHUB_ENV
 
       - name: Install .NET SDK
         if: matrix.build-mono
@@ -134,17 +141,10 @@ jobs:
           cache-name: linux-${{ matrix.target }}-${{ matrix.scons-flags }}-${{ inputs.lto }}
         continue-on-error: true
 
-      - name: Compilation (editor)
+      - name: Compilation
         uses: ./.github/actions/godot-build
         with:
-          scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ matrix.scons-mono-flags }} ${{ inputs.lto }} ${{ env.module_flags }}
-          platform: linuxbsd
-          target: ${{ matrix.target }}
-
-      - name: Compilation (template)
-        uses: ./.github/actions/godot-build
-        with:
-          scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ matrix.scons-mono-flags }} ${{ inputs.lto }} ${{ env.template_module_flags }}
+          scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ matrix.scons-mono-flags }} ${{ inputs.lto }} ${{ env.MODULEFLAGS }}
           platform: linuxbsd
           target: ${{ matrix.target }}
 
@@ -220,6 +220,9 @@ jobs:
           export PATH=/opt/aarch64-godot-linux-gnu_sdk-buildroot/bin:$PATH
           echo "PATH=/opt/aarch64-godot-linux-gnu_sdk-buildroot/bin:$PATH" >> $GITHUB_PATH
           if ${{ matrix.target }} == 'editor':
+            echo "MODULEFLAGS=${{ inputs.module_flags }}" >> $GITHUB_ENV
+          else:
+            echo "MODULEFLAGS=${{ inputs.template_module_flags }}" >> $GITHUB_ENV
 
       - name: Install .NET SDK
         if: matrix.build-mono
@@ -253,17 +256,10 @@ jobs:
         run: |
           ./bin/godot.linuxbsd.editor.x86_64.mono --headless --generate-mono-glue ./modules/mono/glue
 
-      - name: Compilation (editor)
+      - name: Compilation
         uses: ./.github/actions/godot-build
         with:
-          scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ matrix.scons-mono-flags }} ${{ inputs.lto }} ${{ env.module_flags }}
-          platform: linuxbsd
-          target: ${{ matrix.target }}
-
-      - name: Compilation (template)
-        uses: ./.github/actions/godot-build
-        with:
-          scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ matrix.scons-mono-flags }} ${{ inputs.lto }} ${{ env.template_module_flags }}
+          scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ matrix.scons-mono-flags }} ${{ inputs.lto }} ${{ env.MODULEFLAGS }}
           platform: linuxbsd
           target: ${{ matrix.target }}
 
