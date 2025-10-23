@@ -117,8 +117,6 @@ jobs:
         if: matrix.build-mono
         run: |
           dnf install -y dotnet-sdk-8.0
-          export PATH=/opt/x86_64-godot-linux-gnu_sdk-buildroot/bin:$PATH
-          echo "PATH=/opt/${{ env.DEP_ARCH }}-godot-linux-gnu_sdk-buildroot/bin:$PATH" >> $GITHUB_PATH
 
       - name: Free disk space on runner
         run: |
