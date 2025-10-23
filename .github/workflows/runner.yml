@@ -5,7 +5,7 @@ on:
       repo:
         description: 'Repository to use for the build'
         type: string
-        default: 'appsinacup/gonuts'
+        default: 'godotengine/godot'
       base-branch:
         description: 'Base branch to use for the builds'
         type: string
@@ -13,11 +13,11 @@ on:
       tag:
         description: 'tag to use for downloading the repo'
         type: string
-        default: 'gonuts'
+        default: '4.5.1-stable'
       tag_release:
         description: 'tag to use for releasing the build'
         type: string
-        default: '4.5.stable'
+        default: '4.5.1-stable'
       module_flags:
         description: 'Extra module flags, e.g. module_webm_enabled=no'
         type: string
@@ -78,7 +78,7 @@ jobs:
       template_module_flags: ${{ inputs.template_module_flags }}
       use_encryption_key: ${{ inputs.use_encryption_key }}
     secrets: inherit
-  
+
   macos-build:
     name: 🍎 macOS
     uses: ./.github/workflows/macos_builds.yml

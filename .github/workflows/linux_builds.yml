@@ -98,10 +98,6 @@ jobs:
         run: |
           dnf install -y gcc-c++ git pkgconfig tar bzip2 wget file
 
-      - name: Export Encryption Key
-        if: ${{ inputs.use_encryption_key == 'true' }}
-        run: echo "SCRIPT_AES256_ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}" >> $GITHUB_ENV
-
       - name: Install .NET SDK
         if: matrix.build-mono
         run: |
@@ -144,6 +140,10 @@ jobs:
           repository: ${{ inputs.repo }}
           ref: ${{ inputs.tag }}
           submodules: recursive
+
+      - name: Export Encryption Key
+        if: ${{ inputs.use_encryption_key == 'true' }}
+        run: echo "SCRIPT_AES256_ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}" >> $GITHUB_ENV
 
       - name: Restore Godot build cache
         uses: ./.github/actions/godot-cache-restore
