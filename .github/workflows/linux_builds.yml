@@ -88,6 +88,9 @@ jobs:
           dnf config-manager --set-enabled powertools
           dnf update -y
           dnf install -y git pkgconfig tar bzip2 wget file
+          if [[ "${{ matrix.target }}" == "editor" ]]; then
+            dnf install -y gettext
+          fi
 
       - name: Set architecture for dependencies
         run: |
@@ -152,7 +155,7 @@ jobs:
       - name: Generate C# glue
         if: matrix.build-mono
         run:
-          ./bin/godot.linuxbsd.${{ matrix.target }}.${{ env.BIN_ARCH }} --headless --generate-mono-glue ./modules/mono/glue
+          ./bin/godot.linuxbsd.${{ matrix.target }}.${{ env.BIN_ARCH }}.mono --headless --generate-mono-glue ./modules/mono/glue
 
       - name: Build .NET solutions
         if: matrix.build-mono
@@ -190,17 +193,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Template (target=template_release, arch=arm64
+          - name: Template (target=template_release, arch=arm64)
             target: template-release
             scons-flags: arch=arm64
             scons-mono-flags: ''
             build-mono: false
 
-          - name: Template (target=template_release, arch=arm64, mono=false)
+          - name: Template Mono (target=template_release, arch=arm64)
             target: template-release
             scons-flags: arch=arm64
+            scons-mono-flags: ''
             build-mono: true
-            scons-mono-flags: mono_glue=yes
 
     steps:
       - name: Setup Linux environment
@@ -210,6 +213,9 @@ jobs:
           dnf config-manager --set-enabled powertools
           dnf update -y
           dnf install -y git pkgconfig tar bzip2 wget file
+          if [[ "${{ matrix.target }}" == "editor" ]]; then
+            dnf install -y gettext
+          fi
 
       - name: Install dependencies
         run: |
@@ -253,11 +259,6 @@ jobs:
         with:
           cache-name: linux-${{ matrix.target }}-${{ matrix.scons-flags }}-${{ inputs.lto }}
 
-      - name: Generate C# glue
-        if: matrix.build-mono
-        run: |
-          ./bin/godot.linuxbsd.editor.x86_64.mono --headless --generate-mono-glue ./modules/mono/glue
-
       - name: Compilation
         uses: ./.github/actions/godot-build
         with:
@@ -268,7 +269,7 @@ jobs:
       - name: Generate C# glue
         if: matrix.build-mono
         run:
-          ./bin/godot.linuxbsd.${{ matrix.target }}.arm64 --headless --generate-mono-glue ./modules/mono/glue
+          ./bin/godot.linuxbsd.${{ matrix.target }}.arm64.mono --headless --generate-mono-glue ./modules/mono/glue
 
       - name: Build .NET solutions
         if: matrix.build-mono
