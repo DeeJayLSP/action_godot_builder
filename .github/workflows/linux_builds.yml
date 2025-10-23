@@ -29,7 +29,6 @@ env:
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   # Used for the cache key. Add version suffix to force clean build.
   GODOT_BASE_BRANCH: ${{ inputs.base-branch }}
-  SCONSFLAGS: verbose=yes
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
   TSAN_OPTIONS: suppressions=misc/error_suppressions/tsan.txt
@@ -107,19 +106,136 @@ jobs:
             echo "DEP_ARCH=x86_64" >> $GITHUB_ENV
           elif [[ "${{ matrix.scons-flags }}" == *"arch=x86_32"* ]]; then
             echo "DEP_ARCH=i686" >> $GITHUB_ENV
-          elif [[ "${{ matrix.scons-flags }}" == *"arch=arm64"* ]]; then
-            echo "DEP_ARCH=aarch64" >> $GITHUB_ENV
           fi
 
       - name: Install dependencies
         run: |
           dnf install -y libatomic.${{ env.DEP_ARCH }} libatomic-static.${{ env.DEP_ARCH }} wayland-devel.${{ env.DEP_ARCH }} clang.${{ env.DEP_ARCH }} lld.${{ env.DEP_ARCH }}
           ln -s /usr/lib/gcc/${{ env.DEP_ARCH }}-redhat-linux/8/libatomic.a /usr/lib/libatomic.a
-          wget https://github.com/godotengine/buildroot/releases/download/godot-2023.08.x-4/x86_64-godot-linux-gnu_sdk-buildroot.tar.bz2
+          wget https://github.com/godotengine/buildroot/releases/download/godot-2023.08.x-4/${{ env.DEP_ARCH }}-godot-linux-gnu_sdk-buildroot.tar.bz2
           tar -xjf ${{ env.DEP_ARCH }}-godot-linux-gnu_sdk-buildroot.tar.bz2 -C /opt
           /opt/${{ env.DEP_ARCH }}-godot-linux-gnu_sdk-buildroot/relocate-sdk.sh
           export PATH=/opt/${{ env.DEP_ARCH }}-godot-linux-gnu_sdk-buildroot/bin:$PATH
           echo "PATH=/opt/${{ env.DEP_ARCH }}-godot-linux-gnu_sdk-buildroot/bin:$PATH" >> $GITHUB_PATH
+
+      - name: Install .NET SDK
+        if: matrix.build-mono
+        run: |
+          dnf install -y dotnet-sdk-8.0
+
+      - name: Free disk space on runner
+        run: |
+          echo "Disk usage before:" && df -h
+          rm -rf /usr/local/lib/android
+          echo "Disk usage after:" && df -h
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repo }}
+          ref: ${{ inputs.tag }}
+          submodules: recursive
+
+      - name: Export Encryption Key
+        if: ${{ inputs.use_encryption_key == 'true' }}
+        run: echo "SCRIPT_AES256_ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}" >> $GITHUB_ENV
+
+      - name: Restore Godot build cache
+        uses: ./.github/actions/godot-cache-restore
+        with:
+          cache-name: linux-${{ matrix.target }}-${{ matrix.scons-flags }}-${{ inputs.lto }}
+        continue-on-error: true
+
+      - name: Mono compilation (pre-glue)
+        if: matrix.build-mono
+        uses: ./.github/actions/godot-build
+        with:
+          scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ inputs.lto }} ${{ inputs.module_flags }} mono_glue=no
+          platform: linuxbsd
+          target: editor
+
+      - name: Generate C# glue
+        if: matrix.build-mono
+        run: |
+          ./bin/godot.linuxbsd.editor.x86_64.mono --headless --generate-mono-glue ./modules/mono/glue
+
+      - name: Compilation (Editor)
+        if: matrix.target == 'editor'
+        uses: ./.github/actions/godot-build
+        with:
+          scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ matrix.scons-mono-flags }} ${{ inputs.lto }} ${{ inputs.module_flags }}
+          platform: linuxbsd
+          target: ${{ matrix.target }}
+
+      - name: Compilation (Template)
+        if: matrix.target != 'editor'
+        uses: ./.github/actions/godot-build
+        with:
+          scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ matrix.scons-mono-flags }} ${{ inputs.lto }} ${{ inputs.template_module_flags }}
+          platform: linuxbsd
+          target: ${{ matrix.target }}
+
+      - name: Save Godot build cache
+        uses: ./.github/actions/godot-cache-save
+        with:
+          cache-name: linux-${{ matrix.target }}-${{ matrix.scons-flags }}-${{ inputs.lto }}
+        continue-on-error: true
+
+      - name: Prepare artifact
+        run: |
+          strip bin/godot.*
+          chmod +x bin/godot.*
+
+      - name: Build .NET solutions
+        if: matrix.build-mono
+        run: |
+          dotnet --info
+          ./modules/mono/build_scripts/build_assemblies.py --godot-output-dir=./bin --godot-platform=linuxbsd --werror
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.target }}-${{ matrix.scons-flags }}-${{ inputs.lto }}
+          path: bin
+
+  build-linux-arm64:
+    runs-on: ubuntu-latest-arm
+    container: almalinux:8
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Template (target=template_release, arch=arm64
+            target: template-release
+            scons-flags: arch=arm64
+            scons-mono-flags: ''
+            build-mono: false
+
+          - name: Template (target=template_release, arch=arm64, mono=false)
+            target: template-release
+            scons-flags: arch=arm64
+            build-mono: true
+            scons-mono-flags: mono_glue=yes
+
+    steps:
+      - name: Setup Linux environment
+        run: |
+          rpm --import https://repo.almalinux.org/almalinux/RPM-GPG-KEY-AlmaLinux
+          dnf install -y dnf-plugins-core
+          dnf config-manager --set-enabled powertools
+          dnf update -y
+          dnf install -y git pkgconfig tar bzip2 wget file
+
+      - name: Install dependencies
+        run: |
+          dnf install -y libatomic libatomic-static wayland-devel clang lld
+          ln -s /usr/lib/gcc/aarch64-redhat-linux/8/libatomic.a /usr/lib/libatomic.a
+          wget https://github.com/godotengine/buildroot/releases/download/godot-2023.08.x-4/aarch64-godot-linux-gnu_sdk-buildroot.tar.bz2
+          tar -xjf aarch64-godot-linux-gnu_sdk-buildroot.tar.bz2 -C /opt
+          /opt/aarch64-godot-linux-gnu_sdk-buildroot/relocate-sdk.sh
+          export PATH=/opt/aarch64-godot-linux-gnu_sdk-buildroot/bin:$PATH
+          echo "PATH=/opt/aarch64-godot-linux-gnu_sdk-buildroot/bin:$PATH" >> $GITHUB_PATH
 
       - name: Install .NET SDK
         if: matrix.build-mono
