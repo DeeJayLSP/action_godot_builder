@@ -12,7 +12,7 @@ on:
         description: 'Repository to use for the build'
         type: string
       tag:
-        description: 'tag to use for the build'
+        description: 'Tag to use for the build'
         type: string
       module_flags:
         description: 'Extra module flags, e.g. module_webm_enabled=no'
@@ -37,8 +37,9 @@ env:
 
 jobs:
   build-linux:
-    # Stay one LTS before latest to increase portability of Linux artifacts.
-    runs-on: ubuntu-22.04
+    # Use AlmaLinux 8 to increase portability of Linux artifacts.
+    runs-on: ubuntu-latest
+    container: almalinux:8
     name: ${{ matrix.name }}
     strategy:
       fail-fast: false
@@ -49,7 +50,7 @@ jobs:
             scons-flags: arch=x86_64
             scons-mono-flags: ''
             build-mono: false
-          
+
           # TODO re-enable these
           #- name: Editor (target=editor arch=x86_32)
           #  target: editor
@@ -60,7 +61,7 @@ jobs:
             scons-flags: arch=x86_64
             scons-mono-flags: ''
             build-mono: false
-          
+
           - name: Template (target=template_debug, arch=x86_64)
             target: template_debug
             scons-flags: arch=x86_64
@@ -86,6 +87,57 @@ jobs:
             scons-mono-flags: mono_glue=yes
 
     steps:
+      - name: Setup Linux environment
+        run: |
+          rpm --import https://repo.almalinux.org/almalinux/RPM-GPG-KEY-AlmaLinux
+          dnf install -y dnf-plugins-core
+          dnf config-manager --set-enabled powertools
+          dnf update -y
+
+      - name: Install required packages
+        run: |
+          dnf install -y gcc-c++ git pkgconfig tar bzip2 wget file
+
+      - name: Export Encryption Key
+        if: ${{ inputs.use_encryption_key == 'true' }}
+        run: echo "SCRIPT_AES256_ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}" >> $GITHUB_ENV
+
+      - name: Install .NET SDK
+        if: matrix.build-mono
+        run: |
+          dnf install -y dotnet-sdk-8.0
+
+      # Comes last as this modifies PATH
+      - name: Install 64-bit dependencies
+        if: matrix.scons-flags == 'arch=x86_64'
+        run: |
+          dnf install -y libatomic libatomic-static libstdc++-static wayland-devel
+          ln -s /usr/lib/gcc/$x86_64-redhat-linux/8/libatomic.a /usr/lib/libatomic.a
+          wget https://github.com/godotengine/buildroot/releases/download/godot-2023.08.x-4/x86_64-godot-linux-gnu_sdk-buildroot.tar.bz2
+          tar -xjf x86_64-godot-linux-gnu_sdk-buildroot.tar.bz2 -C /opt
+          /opt/x86_64-godot-linux-gnu_sdk-buildroot/relocate-sdk.sh
+          export PATH=/opt/x86_64-godot-linux-gnu_sdk-buildroot/bin:$PATH
+          echo "PATH=/opt/x86_64-godot-linux-gnu_sdk-buildroot/bin:$PATH" >> $GITHUB_PATH
+          x86_64-godot-linux-gnu-gcc --version
+
+      - name: Install 32-bit dependencies
+        if: matrix.scons-flags == 'arch=x86_32'
+        run: |
+          dnf install -y libatomic.i686 libatomic-static.i686 libstdc++-static.i686 wayland-devel.i686
+          ln -s /usr/lib/gcc/$i686-redhat-linux/8/libatomic.a /usr/lib/libatomic.a
+          wget https://github.com/godotengine/buildroot/releases/download/godot-2023.08.x-4/i686-godot-linux-gnu_sdk-buildroot.tar.bz2
+          tar -xjf i686-godot-linux-gnu_sdk-buildroot.tar.bz2 -C /opt
+          /opt/i686-godot-linux-gnu_sdk-buildroot/relocate-sdk.sh
+          export PATH=/opt/i686-godot-linux-gnu_sdk-buildroot/bin:$PATH
+          echo "PATH=/opt/i686-godot-linux-gnu_sdk-buildroot/bin:$PATH" >> $GITHUB_PATH
+          i686-godot-linux-gnu-gcc --version
+
+      - name: Free disk space on runner
+        run: |
+          echo "Disk usage before:" && df -h
+          rm -rf /usr/local/lib/android
+          echo "Disk usage after:" && df -h
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -93,65 +145,17 @@ jobs:
           ref: ${{ inputs.tag }}
           submodules: recursive
 
-      - name: Export Encryption Key
-        if: ${{ inputs.use_encryption_key == 'true' }}
-        run: echo "SCRIPT_AES256_ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}" >> $GITHUB_ENV
-
-      # Need newer mesa for lavapipe to work properly.
-      - name: Linux dependencies for tests
+      - name: Setup SCons cache
         run: |
-          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list
-          sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys EB8B81E14DA65431D7504EA8F63F0F2B90935439
-          sudo add-apt-repository "deb https://ppa.launchpadcontent.net/kisak/turtle/ubuntu ${{ matrix.os == 'ubuntu-20.04' && 'focal' || 'jammy' }} main"
-          sudo apt-get install -qq mesa-vulkan-drivers
-          sudo apt-get install clang lld
-
-      # TODO: Figure out somehow how to embed this one.
-      - name: wayland-scanner dependency
-        run: |
-          sudo apt-get install libwayland-bin
-
-      - name: Install 32-bit C++ build dependencies
-        if: matrix.scons-flags == 'arch=x86_32'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-multilib g++-multilib libc6-dev-i386
-
-      - name: Install Mono toolchain
-        if: matrix.build-mono
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y mono-devel nuget
-
-      - name: Setup .NET SDK
-        if: matrix.build-mono
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '6.0.x'
-
-      - name: Free disk space on runner
-        run: |
-          echo "Disk usage before:" && df -h
-          sudo rm -rf /usr/local/lib/android
-          echo "Disk usage after:" && df -h
+          echo ::add-matcher::misc/utility/problem-matchers.json
+          mkdir -p /home/runner/work/action_godot_builder/action_godot_builder/.scons_cache
+          chmod -R u+rw /home/runner/work/action_godot_builder/action_godot_builder/.scons_cache || true
 
       - name: Restore Godot build cache
         uses: ./.github/actions/godot-cache-restore
         with:
           cache-name: linux-${{ matrix.target }}-${{ matrix.scons-flags }}-${{ inputs.lto }}
         continue-on-error: true
-
-      - name: Setup Python and SCons
-        if: "!matrix.legacy-scons"
-        uses: ./.github/actions/godot-deps
-
-      - name: Setup Python and SCons (legacy versions)
-        if: matrix.legacy-scons
-        uses: ./.github/actions/godot-deps
-        with:
-          # Sync with Ensure*Version in SConstruct.
-          python-version: 3.8
-          scons-version: 4.0
 
       - name: Mono compilation (pre-glue)
         if: matrix.build-mono
@@ -173,7 +177,7 @@ jobs:
           scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ matrix.scons-mono-flags }} ${{ inputs.lto }} ${{ inputs.module_flags }}
           platform: linuxbsd
           target: ${{ matrix.target }}
-      
+
       - name: Compilation (Template)
         if: matrix.target != 'editor'
         uses: ./.github/actions/godot-build
