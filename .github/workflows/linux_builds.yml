@@ -145,6 +145,14 @@ jobs:
           cache-name: linux-${{ matrix.target }}-${{ matrix.scons-flags }}-${{ inputs.lto }}
         continue-on-error: true
 
+      - name: Editor compilation for glue
+        uses: ./.github/actions/godot-build
+        if: matrix.build-mono
+        with:
+          scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ matrix.scons-mono-flags }} ${{ inputs.lto }} ${{ env.MODULEFLAGS }}
+          platform: linuxbsd
+          target: ${{ matrix.target }}
+
       - name: Compilation
         uses: ./.github/actions/godot-build
         with:
