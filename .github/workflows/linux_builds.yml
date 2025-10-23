@@ -113,12 +113,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          dnf install -y libatomic.${{ env.DEP_ARCH }} libatomic-static.${{ env.DEP_ARCH }} wayland-devel.${{ env.DEP_ARCH }} clang.{{}}
+          dnf install -y libatomic.${{ env.DEP_ARCH }} libatomic-static.${{ env.DEP_ARCH }} wayland-devel.${{ env.DEP_ARCH }} clang.${{ env.DEP_ARCH }} lld.${{ env.DEP_ARCH }}
           ln -s /usr/lib/gcc/${{ env.DEP_ARCH }}-redhat-linux/8/libatomic.a /usr/lib/libatomic.a
           wget https://github.com/godotengine/buildroot/releases/download/godot-2023.08.x-4/x86_64-godot-linux-gnu_sdk-buildroot.tar.bz2
           tar -xjf ${{ env.DEP_ARCH }}-godot-linux-gnu_sdk-buildroot.tar.bz2 -C /opt
           /opt/${{ env.DEP_ARCH }}-godot-linux-gnu_sdk-buildroot/relocate-sdk.sh
-          export PATH=/opt/x86_64-godot-linux-gnu_sdk-buildroot/bin:$PATH
+          export PATH=/opt/${{ env.DEP_ARCH }}-godot-linux-gnu_sdk-buildroot/bin:$PATH
           echo "PATH=/opt/${{ env.DEP_ARCH }}-godot-linux-gnu_sdk-buildroot/bin:$PATH" >> $GITHUB_PATH
 
       - name: Install .NET SDK
