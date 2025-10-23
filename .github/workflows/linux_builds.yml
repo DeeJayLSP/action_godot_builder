@@ -93,9 +93,6 @@ jobs:
           dnf install -y dnf-plugins-core
           dnf config-manager --set-enabled powertools
           dnf update -y
-
-      - name: Install required packages
-        run: |
           dnf install -y git pkgconfig tar bzip2 wget file
 
       - name: Install .NET SDK
@@ -118,6 +115,7 @@ jobs:
           wget https://github.com/godotengine/buildroot/releases/download/godot-2023.08.x-4/x86_64-godot-linux-gnu_sdk-buildroot.tar.bz2
           tar -xjf ${{ env.DEP_ARCH }}-godot-linux-gnu_sdk-buildroot.tar.bz2 -C /opt
           /opt/${{ env.DEP_ARCH }}-godot-linux-gnu_sdk-buildroot/relocate-sdk.sh
+          export PATH=/opt/x86_64-godot-linux-gnu_sdk-buildroot/bin:$PATH
           echo "PATH=/opt/${{ env.DEP_ARCH }}-godot-linux-gnu_sdk-buildroot/bin:$PATH" >> $GITHUB_PATH
 
       - name: Free disk space on runner
