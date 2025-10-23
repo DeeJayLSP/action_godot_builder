@@ -106,9 +106,9 @@ jobs:
           export PATH=/opt/${{ env.DEP_ARCH }}-godot-linux-gnu_sdk-buildroot/bin:$PATH
           echo "PATH=/opt/${{ env.DEP_ARCH }}-godot-linux-gnu_sdk-buildroot/bin:$PATH" >> $GITHUB_PATH
           if ${{ matrix.target }} == 'editor':
-            echo "MODULEFLAGS=${{ inputs.module_flags }}"
+            echo "MODULEFLAGS=${{ inputs.module_flags }}" >> $GITHUB_ENV
           else:
-            echo "MODULEFLAGS=${{ inputs.template_module_flags }}"
+            echo "MODULEFLAGS=${{ inputs.template_module_flags }}" >> $GITHUB_ENV
 
       - name: Install .NET SDK
         if: matrix.build-mono
@@ -217,9 +217,9 @@ jobs:
           export PATH=/opt/aarch64-godot-linux-gnu_sdk-buildroot/bin:$PATH
           echo "PATH=/opt/aarch64-godot-linux-gnu_sdk-buildroot/bin:$PATH" >> $GITHUB_PATH
           if ${{ matrix.target }} == 'editor':
-            echo "MODULEFLAGS=${{ inputs.module_flags }}"
+            echo "MODULEFLAGS=${{ inputs.module_flags }}" >> $GITHUB_ENV
           else:
-            echo "MODULEFLAGS=${{ inputs.template_module_flags }}"
+            echo "MODULEFLAGS=${{ inputs.template_module_flags }}" >> $GITHUB_ENV
 
       - name: Install .NET SDK
         if: matrix.build-mono
