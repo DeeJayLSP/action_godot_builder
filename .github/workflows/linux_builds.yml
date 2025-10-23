@@ -68,14 +68,14 @@ jobs:
             scons-mono-flags: ''
             build-mono: true
 
-          - name: Template Mono (target=template_release arch=x86_64)
-            target: template_release
+          - name: Template Mono (target=template_debug arch=x86_64)
+            target: template_debug
             scons-flags: arch=x86_64 module_mono_enabled=yes mono_static=yes
             scons-mono-flags: ''
             build-mono: true
 
-          - name: Template Mono (target=template_debug arch=x86_64)
-            target: template_debug
+          - name: Template Mono (target=template_release arch=x86_64)
+            target: template_release
             scons-flags: arch=x86_64 module_mono_enabled=yes mono_static=yes
             scons-mono-flags: ''
             build-mono: true
@@ -152,15 +152,16 @@ jobs:
           platform: linuxbsd
           target: ${{ matrix.target }}
 
-      - name: Generate C# glue
+      - name: Generate C# glue and solutions
         if: matrix.build-mono
         run:
-          ./bin/godot.linuxbsd.${{ matrix.target }}.${{ env.BIN_ARCH }}.mono --headless --generate-mono-glue ./modules/mono/glue
-
-      - name: Build .NET solutions
-        if: matrix.build-mono
-        run:
+          ./bin/godot.linuxbsd.editor.${{ env.BIN_ARCH }}.mono --headless --generate-mono-glue ./modules/mono/glue
           ./modules/mono/build_scripts/build_assemblies.py --godot-output-dir=./bin --godot-platform=linuxbsd --werror
+
+      - name: Remove editor if template
+        if: matrix.build-mono && matrix.target != 'editor'
+        run:
+          rm ./bin/godot.linuxbsd.editor.${{ env.BIN_ARCH }}.mono
 
       - name: Save Godot build cache
         uses: ./.github/actions/godot-cache-save
@@ -172,12 +173,6 @@ jobs:
         run: |
           strip bin/godot.*
           chmod +x bin/godot.*
-
-      - name: Build .NET solutions
-        if: matrix.build-mono
-        run: |
-          dotnet --info
-          ./modules/mono/build_scripts/build_assemblies.py --godot-output-dir=./bin --godot-platform=linuxbsd --werror
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -259,6 +254,14 @@ jobs:
         with:
           cache-name: linux-${{ matrix.target }}-${{ matrix.scons-flags }}-${{ inputs.lto }}
 
+      - name: Editor compilation for glue
+        uses: ./.github/actions/godot-build
+        if: matrix.build-mono
+        with:
+          scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ matrix.scons-mono-flags }} ${{ inputs.lto }} ${{ env.MODULEFLAGS }}
+          platform: linuxbsd
+          target: ${{ matrix.target }}
+
       - name: Compilation
         uses: ./.github/actions/godot-build
         with:
@@ -266,15 +269,16 @@ jobs:
           platform: linuxbsd
           target: ${{ matrix.target }}
 
-      - name: Generate C# glue
+      - name: Generate C# glue and solutions
         if: matrix.build-mono
         run:
-          ./bin/godot.linuxbsd.${{ matrix.target }}.arm64.mono --headless --generate-mono-glue ./modules/mono/glue
-
-      - name: Build .NET solutions
-        if: matrix.build-mono
-        run:
+          ./bin/godot.linuxbsd.editor.arm64.mono --headless --generate-mono-glue ./modules/mono/glue
           ./modules/mono/build_scripts/build_assemblies.py --godot-output-dir=./bin --godot-platform=linuxbsd --werror
+
+      - name: Remove editor if template
+        if: matrix.build-mono && matrix.target != 'editor'
+        run:
+          rm ./bin/godot.linuxbsd.editor.arm64.mono
 
       - name: Save Godot build cache
         uses: ./.github/actions/godot-cache-save
@@ -286,12 +290,6 @@ jobs:
         run: |
           strip bin/godot.*
           chmod +x bin/godot.*
-
-      - name: Build .NET solutions
-        if: matrix.build-mono
-        run: |
-          dotnet --info
-          ./modules/mono/build_scripts/build_assemblies.py --godot-output-dir=./bin --godot-platform=linuxbsd --werror
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
