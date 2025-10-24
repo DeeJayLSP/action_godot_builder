@@ -164,7 +164,7 @@ jobs:
         if: matrix.build-mono
         run:
           ./bin/godot.linuxbsd.editor.${{ env.BIN_ARCH }}.mono --headless --generate-mono-glue ./modules/mono/glue
-          ln -s /opt/x86_64-godot-linux-gnu_sdk-buildroot/bin/python3 /usr/bin/python3 && \
+          ln -s /opt/x86_64-godot-linux-gnu_sdk-buildroot/bin/python3 /usr/bin/python3
           ./modules/mono/build_scripts/build_assemblies.py --godot-output-dir=./bin --godot-platform=linuxbsd --werror
 
       - name: Remove editor if template
@@ -282,7 +282,7 @@ jobs:
         if: matrix.build-mono
         run:
           ./bin/godot.linuxbsd.editor.arm64.mono --headless --generate-mono-glue ./modules/mono/glue
-          ln -s /opt/x86_64-godot-linux-gnu_sdk-buildroot/bin/python3 /usr/bin/python3 && \
+          ln -s /opt/x86_64-godot-linux-gnu_sdk-buildroot/bin/python3 /usr/bin/python3
           ./modules/mono/build_scripts/build_assemblies.py --godot-output-dir=./bin --godot-platform=linuxbsd --werror
 
       - name: Remove editor if template
