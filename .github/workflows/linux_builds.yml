@@ -153,6 +153,13 @@ jobs:
           platform: linuxbsd
           target: editor
 
+      - name: Compilation
+        uses: ./.github/actions/godot-build
+        with:
+          scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ matrix.scons-mono-flags }} ${{ inputs.lto }} ${{ env.MODULEFLAGS }}
+          platform: linuxbsd
+          target: ${{ matrix.target }}
+
       - name: Generate C# glue and solutions
         if: matrix.build-mono
         run:
@@ -164,13 +171,6 @@ jobs:
         if: matrix.build-mono && matrix.target != 'editor'
         run:
           rm ./bin/godot.linuxbsd.editor.${{ env.BIN_ARCH }}.mono
-
-      - name: Compilation
-        uses: ./.github/actions/godot-build
-        with:
-          scons-flags: ${{ env.SCONSFLAGS }} ${{ matrix.scons-flags }} ${{ matrix.scons-mono-flags }} ${{ inputs.lto }} ${{ env.MODULEFLAGS }}
-          platform: linuxbsd
-          target: ${{ matrix.target }}
 
       - name: Save Godot build cache
         uses: ./.github/actions/godot-cache-save
